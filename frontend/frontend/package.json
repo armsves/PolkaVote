@@ -16,15 +16,17 @@
     "@wagmi/core": "^2.17.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^7.7.0",
     "viem": "^2.31.7",
     "wagmi": "^2.15.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
-    "@tanstack/react-query": "^5.81.5",
+    "@tanstack/react-query": "^5.83.0",
     "@types/node": "^22.16.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.3.3",
     "@wagmi/cli": "^2.3.1",
     "autoprefixer": "^10.4.20",
@@ -37,5 +39,6 @@
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.12.2",
     "vite": "^7.0.4"
-  }
+  },
+  "packageManager": "yarn@3.6.4+sha512.e70835d4d6d62c07be76b3c1529cb640c7443f0fe434ef4b6478a5a399218cbaf1511b396b3c56eb03bc86424cff2320f6167ad2fde273aa0df6e60b7754029f"
 }
