@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/home/armsve/web3summit2025/PolkaVote/frontendv2/contracts/contracts/PrivateVoting.sol": {
+      "lastModificationDate": 1752691418277,
+      "contentHash": "215998f0bd0adc5406e381f3bfe6e0b1",
+      "sourceName": "contracts/PrivateVoting.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi"
+              ]
+            }
+          },
+          "resolc": {
+            "version": "latest",
+            "compilerSource": "npm",
+            "settings": {
+              "optimizer": {}
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.28"
+      ],
+      "artifacts": [
+        "PrivateVoting"
+      ]
+    }
+  }
+}
