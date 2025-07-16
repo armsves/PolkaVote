@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# yarn
+.yarn
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
