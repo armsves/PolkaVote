@@ -8,6 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@aztec/bb.js": "0.84.0",
+    "@noir-lang/noir_js": "1.0.0-beta.6",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@tanstack/react-query": "^5.55.3",
     "next": "^15.3.3",
@@ -21,5 +23,6 @@
     "@types/react": "^19.1.8",
     "eslint-config-next": "^15.1.7",
     "typescript": "5.5.4"
-  }
+  },
+  "packageManager": "yarn@3.6.4+sha512.e70835d4d6d62c07be76b3c1529cb640c7443f0fe434ef4b6478a5a399218cbaf1511b396b3c56eb03bc86424cff2320f6167ad2fde273aa0df6e60b7754029f"
 }
