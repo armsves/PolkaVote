@@ -10,7 +10,7 @@ fn main(
 {
     let mut homomorphism: EmbeddedCurvePoint = vote_commitment[0];
     let mut total = vote_openings[0];
-    for i in 1..500 {
+    for i in 1..5 {
         homomorphism = homomorphism + vote_commitment[i];
         total += vote_openings[i];
     }
