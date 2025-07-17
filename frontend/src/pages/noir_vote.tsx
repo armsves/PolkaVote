@@ -33,7 +33,7 @@ export default function NoirVoteApp() {
       const noir = new Noir(compiledCircuit);
       const backend = new UltraHonkBackend(compiledCircuit.bytecode);
 
-      const timestamp = (BigInt(Date.now()) * 1000000n).toString();
+      const timestamp = (0n).toString();
       // TODO: Get proposal id from page
       const proposalId = 0;
       // TODO: Get user id from page
@@ -60,11 +60,18 @@ export default function NoirVoteApp() {
         show(setLogs, `Generated witness ✅`);
 
         // Prove witeness/message constraints
-        const proof = await backend.generateProof(witness);
+        const proofData = await backend.generateProof(witness);
+        const {publicInputs, proof} = proofData;
         show(setLogs, `Generated proof ✅`);
+        const publicInputsHex = '0x' + Array.from(publicInputs);
+        const publicInputs32 = '0x' + Array.from(publicInputs);
+        const proofString = Buffer.from(proof).toString("base64");
+        show(setLogs, `publicInputsHex: ${publicInputsHex}`);
+        show(setLogs, `publicInputs32: ${publicInputs32}`);
+        show(setResults, `proofString: ${proofString}`);
 
-        const proofString = Buffer.from(proof.proof).toString("base64");
-        setResults([proofString]);
+        const isvalid_proof = backend.verifyProof(proofData);
+        show(setLogs, `isvalid_proof: ${JSON.stringify(await isvalid_proof)}`);
       }
     } catch (e) {
       show(setLogs, "❌ Error");
@@ -72,7 +79,6 @@ export default function NoirVoteApp() {
       console.error(e);
     }
   };
-
   
   const getSignatureAndPublicKey = async (
   message: string,
@@ -90,12 +96,13 @@ export default function NoirVoteApp() {
       const signatureBytes = Array.from(sigBytesFull.slice(0, 64));
 
       const messageHex = Buffer.from(message, "hex");
-      show(setLogs, `message: ${message}`);
+      // show(setLogs, `message: ${message}`);
       
       const hashed = keccak256(messageHex);
-      show(setLogs, `hashed: ${hashed}`);
+      // show(setLogs, `hashed: ${hashed}`);
       
       const pubkey = await recoverPublicKey({ hash: hashed, signature });
+
       const pubKeyHex = Array.from(Buffer.from(pubkey.replace(/^0x/, ""), "hex"));
      
 
@@ -109,7 +116,9 @@ export default function NoirVoteApp() {
       show(setLogs, (`y l ${y.length}`));
 
       let hashHex = Array.from(Buffer.from(hashed.replace(/^0x/, ""), "hex"));
-
+      show(setLogs, `hashed_message: ${hashHex}`);
+      show(setLogs, `Sig : ${signatureBytes}`);
+      
       return {
         publicKeyX: x,
         publicKeyY: y,
@@ -120,6 +129,11 @@ export default function NoirVoteApp() {
       console.error("Error signing or recovering:", err);
     }
   };
+
+  // ABI for the verifier contract (replace with your actual ABI)
+  const verifierAbi = [
+    "function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external view returns (bool)"
+  ];
 
   return (
     <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>

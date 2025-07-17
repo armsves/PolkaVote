@@ -1,6 +1,5 @@
 use dep::std;
 
-
 global SHA256_WORD_LEN: u32 = 32;
 
 struct Vote {
@@ -59,4 +58,3 @@ fn test_verify() {
     let valid_signature = std::ecdsa_secp256k1::verify_signature(pub_key_x, pub_key_y, signature, hashed_message);
     assert(valid_signature);
 }
-
