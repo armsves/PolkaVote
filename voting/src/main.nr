@@ -3,8 +3,8 @@ use std::hash::pedersen_commitment;
 use std::embedded_curve_ops::EmbeddedCurvePoint;
 
 fn main(    
-    vote_commitment: pub [EmbeddedCurvePoint; 500],
-    vote_openings: [Field; 500],
+    vote_commitment: pub [EmbeddedCurvePoint; 5],
+    vote_openings: [Field; 5],
     vote_result: pub Field,
 ) 
 {
