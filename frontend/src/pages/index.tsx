@@ -9,13 +9,7 @@ const Home: NextPage = () => {
   const contractAddress = myTokenModulePrivateVotingAddress[420420422];
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+<div className="flex flex-col min-h-screen text-center text-sm">
       <Head>
         <title>PolkaVote</title>
         <meta
@@ -32,8 +26,6 @@ const Home: NextPage = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '1rem 2rem',
-          borderBottom: '1px solid #eee',
         }}
       >
         {/* Logo */}
@@ -41,7 +33,7 @@ const Home: NextPage = () => {
           <img src="/polkavote-logo.png" alt="Logo" style={{ width: 100, height: 100, marginRight: 8 }} />
         </div>
         {/* Project Name */}
-        <div style={{ fontWeight: 'bold', fontSize: '1.5rem', letterSpacing: 1 }}>
+        <div style={{ fontWeight: 'bold', fontSize: '3.5rem', letterSpacing: 1 }}>
           <span style={{ color: '#e6007a' }}>Polka</span>Vote
         </div>
         {/* Wallet Connect */}
@@ -54,10 +46,8 @@ const Home: NextPage = () => {
         <VotingInterface contractAddress={contractAddress} />
       </main>
 
-      <footer className={styles.footer}>
-        <span>
-          © {new Date().getFullYear()} PolkaVote — Private voting powered by Noir &amp; RainbowKit
-        </span>
+      <footer className="mt-2 p-2 text-center text-gray-400 text-sm">
+        © {new Date().getFullYear()} PolkaVote — Private voting powered by Noir &amp; RainbowKit
       </footer>
     </div>
   );
