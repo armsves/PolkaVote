@@ -1,6 +1,6 @@
-fn main(generator: Field,
-        random_value: Field,
-        encrypted_random_value: Field) {
+fn main(random_value: Field,
+        generator: pub Field,
+        encrypted_random_value: pub Field) {
     assert(encrypted_random_value == generator.pow_32(random_value));
 }
 

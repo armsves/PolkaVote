@@ -1,12 +1,25 @@
 import { Barretenberg, Fr, UltraHonkBackend } from "@aztec/bb.js";
 import { ethers } from "ethers";
-import { Noir } from "@noir-lang/noir_js";
+import { InputMap, Noir } from "@noir-lang/noir_js";
+
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-const circuitPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../circuits/target/noir_panagram.json");
+// const circuitPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../circuits/target/noir_panagram.json");
+const circuitPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
+                     "../../open_vote_network_circuits/inscription/target/inscription.json");
 const circuit = JSON.parse(fs.readFileSync(circuitPath, 'utf8'));
+
+
+interface InscriptionInputs{
+  // Privatge Inputs
+  random_value: string,
+
+  // Public Inputs
+  generator: string,    
+  encrypted_random_value: string
+}
 
 export default async function generateProof() {
   // Initialize Barretenberg
@@ -19,15 +32,15 @@ export default async function generateProof() {
     const noir = new Noir(circuit);
     const honk = new UltraHonkBackend(circuit.bytecode, { threads: 1 });
 
-    const input = {
+    const input: InscriptionInputs = {
       // Private Inputs
-      guess_hash: inputs[0],
+      random_value: inputs[0],
       // Public Inputs
-      answer_double_hash: inputs[1],
-      address: inputs[2],
+      generator: inputs[1],
+      encrypted_random_value: inputs[2],
     };
     
-    const { witness } = await noir.execute(input);
+    const { witness } = await noir.execute(input as unknown as InputMap);
 
     const originalLog = console.log; // Save original
     // Override to silence all logs

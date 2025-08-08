@@ -1,5 +1,5 @@
-fn main(public_generator: Field,
-        vote_degree: Field,
+fn main(vote_degree: Field,
+        public_generator: pub Field,
         encrypted_vote: pub Field) {
     assert(encrypted_vote == public_generator.pow_32(vote_degree));
 }
