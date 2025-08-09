@@ -1,7 +1,8 @@
 fn main(vote_degree: Field,
-        public_generator: pub Field,
-        encrypted_vote: pub Field) {
+        public_generator: Field,
+        encrypted_vote: Field) {
     assert(encrypted_vote == public_generator.pow_32(vote_degree));
+    // TODO assertion that the vote_degree is boolean
 }
 
 // #[test]

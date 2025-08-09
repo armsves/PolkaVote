@@ -129,12 +129,10 @@ contract Vote is Ownable {
     }
 
     function vote(bytes calldata proof, bytes32 encrypted_vote) external {
-        // if(verifyVoting(proof, encrypted_vote)) {
-        //     s_encrypted_votes[msg.sender] = encrypted_vote;
-        //     s_votedVoters += 1;
-        // }
-        s_encrypted_votes.push(encrypted_vote);
-        s_votedVoters += 1;
+        if(verifyVoting(proof, encrypted_vote)) {
+            s_encrypted_votes.push(encrypted_vote);
+            s_votedVoters += 1;
+        }
 
         if (s_enscribedVoters == s_votedVoters) {
             evaluateFinalVote();
@@ -146,8 +144,8 @@ contract Vote is Ownable {
             revert Voting__IsClosed();
         }
 
-        bytes32[] memory publicInputs = new bytes32[](1);
-        publicInputs[0] = encrypted_vote;
+        bytes32[] memory publicInputs = new bytes32[](0);
+        // publicInputs[0] = encrypted_vote;
 
         bool verifiedProof = s_votingVerifier.verify(proof, publicInputs);
         if (!verifiedProof) {

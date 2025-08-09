@@ -37,7 +37,7 @@ contract VoteTest is Test {
         string[] memory inputs = new string[](NUM_ARGS);
         inputs[0] = "npx";
         inputs[1] = "tsx";
-        inputs[2] = "js-scripts/generateProof.ts";
+        inputs[2] = "js-scripts/generateInscriptionProof.ts";
         inputs[3] = vm.toString(randomValue);
         inputs[4] = vm.toString(generator);
         inputs[5] = vm.toString(encryptedRandomValue);
@@ -48,13 +48,18 @@ contract VoteTest is Test {
         (_proof, /*_publicInputs*/ ) = abi.decode(result, (bytes, bytes32[]));
     }
 
-    function _getVotingProof(bytes32 votingValue) internal returns (bytes memory _proof) {
+    function _getVotingProof(bytes32 votingValue, bytes32 encryptedVotingValue)
+        internal
+        returns (bytes memory _proof)
+    {
         uint256 NUM_ARGS = 6;
         string[] memory inputs = new string[](NUM_ARGS);
         inputs[0] = "npx";
         inputs[1] = "tsx";
-        inputs[2] = "js-scripts/generateProof.ts";
+        inputs[2] = "js-scripts/generateVotingProof .ts";
         inputs[3] = vm.toString(votingValue);
+        inputs[4] = vm.toString(generator);
+        inputs[5] = vm.toString(encryptedVotingValue);
 
         bytes memory result = vm.ffi(inputs);
         console.logBytes(result);
@@ -118,7 +123,7 @@ contract VoteTest is Test {
     }
 
     // A sanity check evaluation (it is not needed during the real flow)
-    function evaluateProducts(Vote vote) public returns (uint256) {
+    function evaluateProducts(Vote vote) public view returns (uint256) {
         uint256 encryptedProduct = 1;
         uint256 shareProduct = 1;
 
@@ -156,7 +161,8 @@ contract VoteTest is Test {
             console.log("index =", i);
             console.log("encryptedVote =", encryptedVote);
 
-            bytes memory proof = new bytes(0);
+            // bytes memory proof = new bytes(0);
+            bytes memory proof = _getVotingProof(bytes32(votes[i]), bytes32(modAr.modExp(uint256(generator), votes[i])));
 
             vote.vote(proof, bytes32(encryptedVote));
             vm.stopPrank();
