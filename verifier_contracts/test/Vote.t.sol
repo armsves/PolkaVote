@@ -7,7 +7,6 @@ import {HonkVerifier as InscriptionVerifier} from "../src/InscriptionVerifier.so
 import {HonkVerifier as VotingVerifier} from "../src/VotingVerifier.sol";
 import {ModArithmetic} from "../src/ModArithmetic.sol";
 
-
 contract VoteTest is Test {
     InscriptionVerifier inscriptionVerifier;
     VotingVerifier votingVerifier;
@@ -30,7 +29,10 @@ contract VoteTest is Test {
         modAr = new ModArithmetic(uint256(generator), FIELD_MODULUS);
     }
 
-    function _getInscriptionProof(bytes32 randomValue, bytes32 encryptedRandomValue) internal returns (bytes memory _proof) {
+    function _getInscriptionProof(bytes32 randomValue, bytes32 encryptedRandomValue)
+        internal
+        returns (bytes memory _proof)
+    {
         uint256 NUM_ARGS = 6;
         string[] memory inputs = new string[](NUM_ARGS);
         inputs[0] = "npx";
@@ -43,53 +45,55 @@ contract VoteTest is Test {
         bytes memory result = vm.ffi(inputs);
         console.logBytes(result);
 
-        (_proof, /*_publicInputs*/) =
-            abi.decode(result, (bytes, bytes32[]));
-        
+        (_proof, /*_publicInputs*/ ) = abi.decode(result, (bytes, bytes32[]));
     }
 
-    // function modexp(uint256 base, uint256 exponent, uint256 modulus) internal pure returns (uint256 result) {
-    //     result = 1;
-    //     base = base % modulus;
+    function _getVotingProof(bytes32 votingValue) internal returns (bytes memory _proof) {
+        uint256 NUM_ARGS = 6;
+        string[] memory inputs = new string[](NUM_ARGS);
+        inputs[0] = "npx";
+        inputs[1] = "tsx";
+        inputs[2] = "js-scripts/generateProof.ts";
+        inputs[3] = vm.toString(votingValue);
 
-    //     while (exponent > 0) {
-    //         if (exponent % 2 == 1) {
-    //             result = mulmod(result, base, modulus);
-    //         }
-    //         base = mulmod(base, base, modulus);
-    //         exponent /= 2;
-    //     }
-    // }
+        bytes memory result = vm.ffi(inputs);
+        console.logBytes(result);
+
+        (_proof, /*_publicInputs*/ ) = abi.decode(result, (bytes, bytes32[]));
+    }
 
     function testCorrectInscription() public {
         uint256 voters = 1;
-        
-        Vote vote = new Vote(inscriptionVerifier,
-                             votingVerifier,
-                             voters,
-                             generator);
+
+        Vote vote = new Vote(inscriptionVerifier, votingVerifier, voters, generator);
         uint256 randomDegree = 1;
         // bytes32 randomValue = bytes32(uint256(modexp(generator, randomDegree)));
         uint256 encrypted = modAr.modExp(uint256(generator), randomDegree);
         bytes32 encryptedRandomValue = bytes32(uint256(encrypted));
-        
+
         bytes memory proof = _getInscriptionProof(bytes32(randomDegree), encryptedRandomValue);
         vote.enscribeVoter(proof, encryptedRandomValue);
 
         assertEq(vote.s_enscribedVoters(), 1);
     }
 
-   function testElevenCorrectInscription() public {
-        Vote vote = new Vote(
-            inscriptionVerifier,
-            votingVerifier,
-            VOTERS,
-            generator
-        );
+    function testElevenVotersFullFlow() public {
+        Vote vote = new Vote(inscriptionVerifier, votingVerifier, VOTERS, generator);
 
-        // Declare a fixed-size memory array of 11 user addresses
         address[VOTERS] memory users;
+        enscribeAllVoters(users, vote);
+        // Assert total number of enscribed voters
+        assertEq(vote.s_enscribedVoters(), VOTERS);
+        assertEq(vote.s_maximalNumberOfVoters(), VOTERS);
 
+        uint256 nullified = evaluateProducts(vote);
+        assertEq(nullified, uint256(1));
+
+        uint256 votesSum = allVotersVote(users, vote);
+        assertEq(vote.s_yesVotes(), votesSum);
+    }
+
+    function enscribeAllVoters(address[VOTERS] memory users, Vote vote) public {
         for (uint256 i = 0; i < VOTERS; i++) {
             // Simulate a unique user
             address userAddr = address(uint160(i + 1));
@@ -111,40 +115,64 @@ contract VoteTest is Test {
 
             vm.stopPrank();
         }
-
-        // Assert total number of enscribed voters
-        assertEq(vote.s_enscribedVoters(), 11);
-
-        // Log each user's encrypted_random_value
-        for (uint256 i = 0; i < users.length; i++) {
-            bytes32 value = vote.s_encrypted_random_values(users[i]);
-
-            console.log("User:", users[i]);
-            console.logBytes32(value);
-        }
-
-        uint256 nullified = evaluateProducts(vote);
-        assertEq(nullified, uint256(1));
     }
 
-    function evaluateProducts(Vote vote) public view returns (uint256) {
+    // A sanity check evaluation (it is not needed during the real flow)
+    function evaluateProducts(Vote vote) public returns (uint256) {
         uint256 encryptedProduct = 1;
         uint256 shareProduct = 1;
 
-        for (uint256 i = 0; i < vote.s_maximalNumberOfVoters(); i++) {
+        for (uint256 i = 0; i < VOTERS; i++) {
             address voter = vote.s_voters(i);
             uint256 value = uint256(vote.s_encrypted_random_values(voter));
-            
+
             encryptedProduct = modAr.modMul(encryptedProduct, value);
-            // mulmod(encryptedProduct, value, FIELD_MODULUS);
         }
 
-        for (uint256 i = 0; i < vote.s_votedVoters(); i++) {
+        for (uint256 i = 0; i < VOTERS; i++) {
             uint256 share = vote.s_decryption_shares(i);
             shareProduct = modAr.modMul(shareProduct, share);
-            // mulmod(shareProduct, share, FIELD_MODULUS);
         }
 
-        return modAr.modMul(encryptedProduct, shareProduct);
+        return shareProduct;
+    }
+
+    function allVotersVote(address[VOTERS] memory users, Vote vote) public returns (uint256) {
+        uint256[] memory votes = generateBinaryArray(VOTERS);
+        uint256 votesSum = 0;
+        for (uint256 i = 0; i < VOTERS; i++) {
+            votesSum += votes[i];
+        }
+
+        for (uint256 i = 0; i < VOTERS; i++) {
+            // Simulate a unique user
+            address userAddr = address(uint160(i + 1));
+            users[i] = userAddr;
+
+            vm.startPrank(userAddr);
+
+            uint256 encryptedVote =
+                modAr.modMul(modAr.modExp(uint256(generator), votes[i]), vote.s_decryption_shares(i));
+            console.log("index =", i);
+            console.log("encryptedVote =", encryptedVote);
+
+            bytes memory proof = new bytes(0);
+
+            vote.vote(proof, bytes32(encryptedVote));
+            vm.stopPrank();
+        }
+        return votesSum;
+    }
+
+    function generateBinaryArray(uint256 length) private view returns (uint256[] memory) {
+        uint256[] memory result = new uint256[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            uint256 rand = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender, i)));
+
+            result[i] = uint256(rand % 2);
+        }
+
+        return result;
     }
 }

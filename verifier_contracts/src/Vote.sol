@@ -4,18 +4,18 @@ pragma solidity ^0.8.27;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {IVerifier as IInscriptionVerifier} from "./InscriptionVerifier.sol";
 import {IVerifier as IVotingVerifier} from "./VotingVerifier.sol";
-import { ModArithmetic } from "./ModArithmetic.sol";
+import {ModArithmetic} from "./ModArithmetic.sol";
 
 contract Vote is Ownable {
     IInscriptionVerifier public s_inscriptionVerifier;
     IVotingVerifier public s_votingVerifier;
     bool public s_finalVote;
+    uint256 public s_yesVotes;
 
     mapping(address => bytes32) public s_encrypted_random_values;
     uint256 public s_enscribedVoters = 0;
-    mapping(address => bytes32) public s_encrypted_votes;
+    bytes32[] public s_encrypted_votes;
     uint256 public s_votedVoters = 0;
-    // uint256 public inscriptionDeadline;
     uint256 public s_maximalNumberOfVoters;
     address[] public s_voters;
     bytes32 public s_generator;
@@ -34,34 +34,40 @@ contract Vote is Ownable {
     error Constructor__InvalidDeadline(uint256 currentTime, uint256 providedDeadline);
     error Inscription__Closed(uint256 currentTime, uint256 deadline);
     error Inscription__InvalidProof(address voter);
-    error Inscription__IsNotClosed(uint256 currentTime, uint256 deadline);
+    error Inscription__IsNotClosedYet(uint256 enscribedVoters, uint256 MaximalVoters);
     error Voting__InvalidProof(address voter);
     error Voting__IsClosed();
     error Voting__IsNotFinalized();
-    
+    error Voting__FailedToDecryptFinalVote();
+    error Voter__InvalidIndex(uint256 voterIndex, uint256 maximalNumberOfVoters);
+
     constructor(
         IInscriptionVerifier _inscriptionVerifier,
         IVotingVerifier _votingVerifier,
         uint256 _numberOfVoters,
         bytes32 generator
-        ) Ownable(msg.sender) {
-            s_inscriptionVerifier = _inscriptionVerifier;
-            s_votingVerifier = _votingVerifier;
-            s_maximalNumberOfVoters = _numberOfVoters;
-            s_generator = generator;
-            s_modAr = new ModArithmetic(uint256(generator), FIELD_MODULUS);
+    ) Ownable(msg.sender) {
+        s_inscriptionVerifier = _inscriptionVerifier;
+        s_votingVerifier = _votingVerifier;
+        s_maximalNumberOfVoters = _numberOfVoters;
+        s_generator = generator;
+        s_modAr = new ModArithmetic(uint256(generator), FIELD_MODULUS);
     }
 
     function enscribeVoter(bytes calldata proof, bytes32 encrypted_random_value) external {
-        if(verifyInscription(proof, encrypted_random_value)) {
+        if (verifyInscription(proof, encrypted_random_value)) {
             s_encrypted_random_values[msg.sender] = encrypted_random_value;
-            s_enscribedVoters++;
+            s_enscribedVoters += 1;
             s_voters.push(msg.sender);
             emit Inscription__VoterEnscribed(msg.sender, s_enscribedVoters);
+
+            if (s_enscribedVoters == s_maximalNumberOfVoters) {
+                evaluateDecryptionValues();
+            }
         }
     }
 
-    function verifyInscription(bytes calldata proof, bytes32 encrypted_random_value) public returns (bool) {
+    function verifyInscription(bytes calldata proof, bytes32 encrypted_random_value) internal returns (bool) {
         if (s_enscribedVoters >= s_maximalNumberOfVoters) {
             revert Inscription__Closed(s_enscribedVoters, s_maximalNumberOfVoters);
         }
@@ -82,18 +88,60 @@ contract Vote is Ownable {
         return verifiedProof;
     }
 
-    function vote(bytes calldata proof, bytes32 encrypted_vote) external {
-        if(verifyVoting(proof, encrypted_vote)) {
-            s_encrypted_votes[msg.sender] = encrypted_vote;
-            s_votedVoters++;
+    function evaluateDecryptionValues() internal {
+        if (s_maximalNumberOfVoters != s_enscribedVoters) {
+            revert Inscription__IsNotClosedYet(s_votedVoters, s_enscribedVoters);
         }
 
+        // s_aggregated_multiplication.push(
+        //     uint256(s_encrypted_random_values[s_voters[0]])
+        // );
+
+        s_aggregated_multiplication.push(uint256(1));
+
+        for (uint256 i = 1; i < s_voters.length; i++) {
+            address voter = s_voters[i - 1];
+            uint256 encrypted = uint256(s_encrypted_random_values[voter]);
+
+            s_aggregated_multiplication.push(s_modAr.modMul(s_aggregated_multiplication[i - 1], encrypted));
+        }
+
+        for (uint256 i = 0; i < s_voters.length; i++) {
+            uint256 reverse_i = s_voters.length - i - 1;
+            s_aggregated_division.push(s_modAr.modInv(s_aggregated_multiplication[reverse_i]));
+        }
+
+        for (uint256 i = 0; i < s_voters.length; i++) {
+            s_decryption_shares.push(s_modAr.modMul(s_aggregated_multiplication[i], s_aggregated_division[i]));
+        }
+
+        emit Voting__Starting(s_decryption_shares);
+    }
+
+    function getDecryptionValueByVoterIndex(uint256 voterIndex) external view returns (uint256) {
+        if (s_enscribedVoters < s_maximalNumberOfVoters) {
+            revert Inscription__IsNotClosedYet(s_enscribedVoters, s_maximalNumberOfVoters);
+        }
+        if (voterIndex >= s_maximalNumberOfVoters) {
+            revert Voter__InvalidIndex(voterIndex, s_maximalNumberOfVoters);
+        }
+        return s_decryption_shares[voterIndex];
+    }
+
+    function vote(bytes calldata proof, bytes32 encrypted_vote) external {
+        // if(verifyVoting(proof, encrypted_vote)) {
+        //     s_encrypted_votes[msg.sender] = encrypted_vote;
+        //     s_votedVoters += 1;
+        // }
+        s_encrypted_votes.push(encrypted_vote);
+        s_votedVoters += 1;
+
         if (s_enscribedVoters == s_votedVoters) {
-            evaluates_finalVote();
+            evaluateFinalVote();
         }
     }
 
-    function verifyVoting(bytes calldata proof, bytes32 encrypted_vote) public returns (bool) {
+    function verifyVoting(bytes calldata proof, bytes32 encrypted_vote) internal returns (bool) {
         if (s_votedVoters >= s_enscribedVoters) {
             revert Voting__IsClosed();
         }
@@ -102,53 +150,38 @@ contract Vote is Ownable {
         publicInputs[0] = encrypted_vote;
 
         bool verifiedProof = s_votingVerifier.verify(proof, publicInputs);
-        if(!verifiedProof) {
+        if (!verifiedProof) {
             revert Voting__InvalidProof(msg.sender);
         }
 
         emit Voting__ProofSucceeded(verifiedProof);
-        s_encrypted_votes[msg.sender] = encrypted_vote;
         return verifiedProof;
     }
 
-    function evaluates_finalVote() public {
-
+    function evaluateFinalVote() public {
+        uint256 encryptedFinalVote = 1;
+        for (uint256 i = 0; i < s_maximalNumberOfVoters; i++) {
+            encryptedFinalVote = s_modAr.modMul(encryptedFinalVote, uint256(s_encrypted_votes[i]));
+        }
+        bruteForceFinalVote(encryptedFinalVote);
     }
 
-    function evaluateDecryptionValues() public {
-        if (s_votedVoters != s_enscribedVoters) {
-            revert Inscription__IsNotClosed(s_votedVoters, s_enscribedVoters);
+    function bruteForceFinalVote(uint256 encryptedValue) internal {
+        uint256 acc = 1;
+        for (uint256 i = 0; i <= s_maximalNumberOfVoters; i++) {
+            if (acc == encryptedValue) {
+                s_yesVotes = i;
+                s_finalVote = i > s_maximalNumberOfVoters / 2;
+                return;
+            }
+            acc = s_modAr.modMul(acc, uint256(s_generator));
         }
-
-        s_aggregated_multiplication.push(
-            uint256(s_encrypted_random_values[s_voters[0]])
-        );
-
-        for (uint256 i = 1; i < s_voters.length; i++) {
-            address voter = s_voters[i];
-            uint256 encrypted = uint256(s_encrypted_random_values[voter]);
-            
-            s_aggregated_multiplication.push(s_modAr.modMul(s_aggregated_multiplication[i-1], encrypted));
-        }
-
-        for (uint256 i = 0; i < s_voters.length; i++) {
-            uint256 reverse_i = s_voters.length - i - 1;
-            s_aggregated_division.push(
-                s_modAr.modInv(s_aggregated_multiplication[reverse_i]));
-        }
-
-        for (uint256 i = 0; i < s_voters.length; i++) {
-            s_decryption_shares.push(
-                s_modAr.modMul(s_aggregated_multiplication[i], s_aggregated_division[i])
-            );
-        }
-
-        emit Voting__Starting(s_decryption_shares);
+        revert Voting__FailedToDecryptFinalVote();
     }
-    
-    function gets_finalVote() external view returns (bool) {
+
+    function get_finalVote() external view returns (bool) {
         if (s_enscribedVoters < s_maximalNumberOfVoters) {
-            revert Inscription__IsNotClosed(s_enscribedVoters, s_maximalNumberOfVoters);
+            revert Inscription__IsNotClosedYet(s_enscribedVoters, s_maximalNumberOfVoters);
         }
 
         if (s_votedVoters != s_enscribedVoters) {
@@ -156,23 +189,4 @@ contract Vote is Ownable {
         }
         return s_finalVote;
     }
-
-    // function invmod(uint a, uint p) internal pure returns (uint) {
-    //     if (a == 0 || a == p || p == 0)
-    //         revert();
-    //     if (a > p)
-    //         a = a % p;
-    //     int t1;
-    //     int t2 = 1;
-    //     uint r1 = p;
-    //     uint r2 = a;
-    //     uint q;
-    //     while (r2 != 0) {
-    //         q = r1 / r2;
-    //         (t1, t2, r1, r2) = (t2, t1 - int(q) * t2, r2, r1 - q * r2);
-    //     }
-    //     if (t1 < 0)
-    //         return (p - uint(-t1));
-    //     return uint(t1);
-    // }
 }
