@@ -1,1 +1,5 @@
 /node_modules
+/open_vote_contracts/cache/
+/open_vote_contracts/out/
+/.vscode
+frontend/.env

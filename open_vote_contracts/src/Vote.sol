@@ -1,4 +1,4 @@
-// // SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -129,7 +129,7 @@ contract Vote is Ownable {
     }
 
     function vote(bytes calldata proof, bytes32 encrypted_vote) external {
-        if(verifyVoting(proof, encrypted_vote)) {
+        if (verifyVoting(proof, encrypted_vote)) {
             s_encrypted_votes.push(encrypted_vote);
             s_votedVoters += 1;
         }

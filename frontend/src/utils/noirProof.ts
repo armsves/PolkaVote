@@ -1,6 +1,6 @@
 import { UltraHonkBackend } from '@aztec/bb.js';
 import { Noir, type CompiledCircuit } from '@noir-lang/noir_js';
-import rawCircuit from "../../../voting_circuit/target/circuit.json";
+import rawCircuit from "../../../homomorphic_voting_circuit/target/circuit.json";
 import { keccak256, recoverPublicKey } from 'viem';
 
 export async function generateNoirProof({
