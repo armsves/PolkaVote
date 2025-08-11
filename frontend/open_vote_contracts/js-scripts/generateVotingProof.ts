@@ -6,7 +6,6 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-// const circuitPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../circuits/target/noir_panagram.json");
 const circuitPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
                      "../../open_vote_network_circuits/voting/target/voting.json");
 const circuit = JSON.parse(fs.readFileSync(circuitPath, 'utf8'));

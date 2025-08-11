@@ -82,10 +82,9 @@ contract Vote is Ownable {
             revert Inscription__Closed(s_enscribedVoters, s_maximalNumberOfVoters);
         }
 
-        bytes32[] memory publicInputs = new bytes32[](0);
-        // publicInputs[0] = s_generator;
-        // publicInputs[1] = encrypted_random_value;
-        // publicInputs[2] = encrypted_random_value;
+        bytes32[] memory publicInputs = new bytes32[](2);
+        publicInputs[0] = s_generator;
+        publicInputs[1] = encrypted_random_value;
 
         bool verifiedProof = s_inscriptionVerifier.verify(proof, publicInputs);
 
@@ -158,8 +157,9 @@ contract Vote is Ownable {
             revert Voting__IsClosed();
         }
 
-        bytes32[] memory publicInputs = new bytes32[](0);
-        // publicInputs[0] = encrypted_vote;
+        bytes32[] memory publicInputs = new bytes32[](2);
+        publicInputs[0] = s_generator;
+        publicInputs[1] = encrypted_vote;
 
         bool verifiedProof = s_votingVerifier.verify(proof, publicInputs);
         if (!verifiedProof) {
