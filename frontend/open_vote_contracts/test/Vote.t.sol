@@ -88,7 +88,7 @@ contract VoteTest is Test {
         address users = address(uint160(1));
         vm.startPrank(user);
 
-        uint256 randomDegree = 1;
+        uint256 randomDegree = 200;
         uint256 encrypted = modAr.modExp(uint256(generator), randomDegree);
         bytes32 encryptedRandomValue = bytes32(encrypted);
         bytes32 randomValue = bytes32(randomDegree);

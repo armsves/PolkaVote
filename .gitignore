@@ -4,3 +4,5 @@
 /.vscode
 frontend/.env
 .env
+
+frontend/open_vote_contracts/out/

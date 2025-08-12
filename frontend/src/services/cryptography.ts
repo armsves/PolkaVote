@@ -182,7 +182,7 @@ export async function  generateInscriptionProof(random_value: string, encrypted_
 }
 
 export async function  generateVotingProof(vote: string, encrypted_vote: string, showLog:(content: string) => void): Promise<{ proof: Uint8Array, publicInputs: string[] }> {
-  return CryptoMath.instance.generateInscriptionProof(vote, encrypted_vote, showLog);
+  return CryptoMath.instance.generateVotingProof(vote, encrypted_vote, showLog);
 }
 
 export function bigIntToBytes32(value: bigint | number | string): Hex {

@@ -238,9 +238,15 @@ const Home: NextPage = () => {
       const enc = modExp(Crypto.generator, voteDegree);
       const encHex = bigIntToBytes32(enc);
 
-      // Prove (logs go to SidePanel via appendLog)
-      const { proof } = await generateVotingProof(voteHex, encHex, appendLog);
+      const { proof, publicInputs } = await generateVotingProof(voteHex, encHex, appendLog);
       const proofHex = u8ToHex(proof);
+
+      if (BigInt(publicInputs[0]) !== BigInt(Crypto.generator) ||
+          BigInt(publicInputs[1]) !== BigInt(enc)) {
+          appendLog('❌ Prover public inputs mismatch — aborting send');
+          return;
+      }
+      appendLog('✅ Prover public inputs match!');
 
       appendLog(`Vote: sending tx for ${voteAddress}…`);
       const tx = await castVoteOnVote({
